@@ -15,6 +15,7 @@ namespace DrawTest
         private readonly DispatcherTimer timer;
         private List<Player> players;
         private DrawLots drawLots;
+        private int PlayersCount = 1, SeedCount = 0, DelegationCount = 0;
 
         public MainWindow()
         {
@@ -34,11 +35,11 @@ namespace DrawTest
 
         private void Draw_Click(object sender, RoutedEventArgs e)
         {
-            if(timer.IsEnabled)
+            if (timer.IsEnabled)
             {
                 return;
             }
-            if(!int.TryParse(PlayerCountTextBox.Text.Trim(),out int playerCount))
+            if (!int.TryParse(PlayerCountTextBox.Text.Trim(), out int playerCount))
             {
                 throw new ArgumentException("Player count must be an integer number.");
             }
@@ -50,8 +51,14 @@ namespace DrawTest
             {
                 throw new ArgumentException("Delegation count must be an integer number.");
             }
-            players = InitPlayers(playerCount, seedCount, delegationCount);
-            drawLots = new DrawLots(players);
+            if (playerCount != PlayersCount || seedCount != SeedCount || delegationCount != DelegationCount)
+            {
+                PlayersCount = playerCount;
+                SeedCount = seedCount;
+                DelegationCount = delegationCount;
+                players = InitPlayers(playerCount, seedCount, delegationCount);
+                drawLots = new DrawLots(players);
+            }
             timer.Start();
         }
 

@@ -23,6 +23,7 @@ namespace DrawTest.Class
             var seedCount = Players.Count(p => p.Seed.HasValue);
             var byeCount = lotsCount - Players.Count;
             var nodeList = new List<Node<DrawPositionNode>>();
+            var seedDrawpositions = new List<DrawPosition>(seedCount);
             for (int i = 0; i < lotsCount; i++)
             {
                 var drawPosition = new DrawPosition()
@@ -40,6 +41,7 @@ namespace DrawTest.Class
                         drawPosition.PlayerName = seedPlayer.Name;
                         drawPosition.Delegation = seedPlayer.DelegationName;
                         drawPosition.Seed = seedPlayer.Seed;
+                        seedDrawpositions.Add(drawPosition);
                     }
                 }
                 if (drawPosition.LotNumber > lotsCount - byeCount)
@@ -52,6 +54,7 @@ namespace DrawTest.Class
                     Data = new DrawPositionNode
                     {
                         DrawPosition = drawPosition,
+                        DelegationName = drawPosition?.Delegation,
                         FreeCount = drawPosition.PlayerName == null ? 1 : 0
                     }
                 });
@@ -75,7 +78,8 @@ namespace DrawTest.Class
                             LeftChild = tempNodeList[j],
                             Data = new DrawPositionNode
                             {
-                                FreeCount = tempNodeList[j].Data.FreeCount
+                                FreeCount = tempNodeList[j].Data.FreeCount,
+                                DelegationName = tempNodeList[j].Data.DelegationName
                             }
                         };
                         nodeList.Add(node);
@@ -84,6 +88,21 @@ namespace DrawTest.Class
                     {
                         node.RightChild = tempNodeList[j];
                         node.Data.FreeCount += tempNodeList[j].Data.FreeCount;
+                        if (node.Data.DelegationName !=
+                            tempNodeList[j].Data.DelegationName)
+                        {
+                            if (node.Data.DelegationName != null)
+                            {
+                                if (tempNodeList[j].Data.DelegationName != null)
+                                {
+                                    node.Data.DelegationName = null;
+                                }
+                            }
+                            else
+                            {
+                                node.Data.DelegationName = tempNodeList[j].Data.DelegationName;
+                            }
+                        }
                     }
                 }
             }
@@ -91,6 +110,7 @@ namespace DrawTest.Class
             var provider = new DrawProvider<Player>();
             provider.Shuffle(players);
             var groups = players.GroupBy(p => p.DelegationName).ToList();
+
             foreach (var group in groups)
             {
                 players = group.ToList();
@@ -184,7 +204,58 @@ namespace DrawTest.Class
                     }
                 }
             }
-
+            foreach (var seedDrawPosition in seedDrawpositions)
+            {
+                DrawPosition anotherDrawPosition;
+                var seedSortOrder = seedDrawPosition.SortOrder;
+                if (seedSortOrder % 2 == 0)
+                {
+                    anotherDrawPosition = drawPositions[seedSortOrder - 2];
+                }
+                else
+                {
+                    anotherDrawPosition = drawPositions[seedSortOrder];
+                }
+                if (anotherDrawPosition.Seed != null)
+                    continue;
+                if (seedDrawPosition.Delegation != anotherDrawPosition.Delegation)
+                    continue;
+                var isDiffrentDelegation = false;
+                foreach (var position in drawPositions)
+                {
+                    if (position.SortOrder % 2 == 1)
+                    {
+                        isDiffrentDelegation = position.Delegation !=
+                            seedDrawPosition.Delegation;
+                    }
+                    else if (isDiffrentDelegation)
+                    {
+                        if (position.Delegation != seedDrawPosition.Delegation)
+                        {
+                            var tempPosition = position;
+                            if (tempPosition.Seed != null)
+                            {
+                                tempPosition = drawPositions[tempPosition.SortOrder - 2];
+                                if (tempPosition.Seed != null)
+                                {
+                                    isDiffrentDelegation = false;
+                                    continue;
+                                }
+                            }
+                            var tempDelegation = tempPosition.Delegation;
+                            var tempPlayerName = tempPosition.PlayerName;
+                            var tempRegisterId = tempPosition.RegisterId;
+                            tempPosition.Delegation = anotherDrawPosition.Delegation;
+                            tempPosition.PlayerName = anotherDrawPosition.PlayerName;
+                            tempPosition.RegisterId = anotherDrawPosition.RegisterId;
+                            anotherDrawPosition.RegisterId = tempRegisterId;
+                            anotherDrawPosition.PlayerName = tempPlayerName;
+                            anotherDrawPosition.Delegation = tempDelegation;
+                            break;
+                        }
+                    }
+                }
+            }
             return drawPositions;
         }
 

@@ -5,5 +5,7 @@
         public DrawPosition DrawPosition { get; set; }
 
         public int FreeCount { get; set; }
+
+        public string DelegationName { get; set; }
     }
 }
